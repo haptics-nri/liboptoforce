@@ -24,21 +24,21 @@ remake_doc(
 )
 
 remake_pack_deb(
-  DEPENDS libboost-system[0-9.]* libboost-thread[0-9.]*
-    libboost-signals[0-9.]* libboost-chrono[0-9.]*
+  DEPENDS libboost-system1.58.0 libboost-thread1.58.0
+    libboost-signals1.58.0 libboost-chrono1.58.0
 )
 remake_pack_deb(
   COMPONENT dev
   DESCRIPTION "development headers"
   DEPENDS liboptoforce
-    libboost-system-dev|libboost-system1.48-dev
-    libboost-thread-dev|libboost-thread1.48-dev
-    libboost-signals-dev|libboost-signals1.48-dev
+    libboost-system1.58-dev
+    libboost-thread1.58-dev
+    libboost-signals1.58-dev
 )
 remake_pack_deb(
   COMPONENT utils
   DESCRIPTION "utilities"
-  DEPENDS liboptoforce libboost-program-options[0-9.]*
+  DEPENDS liboptoforce libboost-program-options1.58.0
 )
 remake_pack_deb(
   ARCH all
@@ -50,9 +50,9 @@ remake_distribute_deb(
   DISTRIBUTION precise
   SECTION libs
   UPLOAD ppa:kralf/asl
-  DEPENDS libboost-system1.48-dev libboost-thread1.48-dev
-    libboost-signals1.48-dev libboost-chrono1.48-dev
-    libboost-program-options1.48-dev remake doxygen
+  DEPENDS libboost-system1.58-dev libboost-thread1.58-dev
+    libboost-signals1.58-dev libboost-chrono1.58-dev
+    libboost-program-options1.58-dev remake doxygen
     pkg-config
   PASS CMAKE_BUILD_TYPE LIBOPTOFORCE_GIT_REVISION
 )
