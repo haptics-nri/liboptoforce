@@ -107,6 +107,12 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
           currentPackage.version = SensorPackage::version_94;
           currentPackage.timestamp = timestamp;
         }
+        else if (c == 170) {
+          // 1.7 version sensor
+          currentState = state_170_Start;
+          currentPackage.version = SensorPackage::version_170;
+          currentPackage.timestamp = timestamp;
+        }
         else {
           // wrong input byte -> restart fsm
           restart();
