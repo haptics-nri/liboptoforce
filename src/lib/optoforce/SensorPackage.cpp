@@ -221,6 +221,16 @@ void SensorPackage::toReading(SensorReading& reading, double
         
         break;
       }
+    case version_170:
+      if (force.size() == 3) {
+        reading.setForceX(force[0]*signalToForceFactor);
+        reading.setForceY(force[1]*signalToForceFactor);
+        reading.setForceZ(force[2]*signalToForceFactor);
+        reading.clearTorque();
+        reading.setTimestamp(timestamp);
+        
+        break;
+      }
     default:
       BOOST_THROW_EXCEPTION(ConversionError());
   }

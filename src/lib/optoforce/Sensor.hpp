@@ -379,6 +379,8 @@ namespace optoforce {
       * package buffer.
       */
     void clearPackages();
+
+    void requestConfig();
     
   protected:
     /** \brief The sensor's associated serial communication device

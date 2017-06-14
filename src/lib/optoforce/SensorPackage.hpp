@@ -42,6 +42,7 @@ namespace optoforce {
   
   class SensorPackage {
   friend class StateMachine;
+  friend class Sensor;
   public:
     /** \brief Enumerable representing the package version
       */ 
@@ -60,7 +61,10 @@ namespace optoforce {
       version_68 = 3,
       /** .94 package version
         */
-      version_94 = 4
+      version_94 = 4,
+      /** 1.7 package version
+        */
+      version_170 = 5
     };
     
     /** \brief Enumerable representing the package checksum result
@@ -166,6 +170,22 @@ namespace optoforce {
     inline int64_t getTimestamp() const {
       return timestamp;
     };
+
+    /** \brief Retrieve the sample count
+     *
+     * \return The sample count
+     */
+    inline unsigned short getSampleCount() const {
+        return sampleCount;
+    }
+
+    /** \brief Retrieve the sensor status
+     *
+     * \return The sensor status
+     */
+    inline unsigned short getStatus() const {
+        return status;
+    }
     
     /** \brief Retrieve the checksum result of the sensor package
       * 
@@ -384,7 +404,15 @@ namespace optoforce {
       *   since the epoch.
       */
     int64_t timestamp;
+
+    /** \brief The sample count of this reading (if available)
+     */
+    unsigned short sampleCount;
     
+    /** \brief The sensor status
+     */
+    unsigned short status;
+
     /** \brief The checksum result of the sensor package
       */
     Checksum checksum;

@@ -95,7 +95,15 @@ namespace optoforce {
       state_94_I12H, state_94_I12L, state_94_S3TH, state_94_S3TL,
       state_94_I13H, state_94_I13L, state_94_I14H, state_94_I14L,
       state_94_I15H, state_94_I15L, state_94_I16H, state_94_I16L,
-      state_94_S4TH, state_94_S4TL, state_94_Checksum
+      state_94_S4TH, state_94_S4TL, state_94_Checksum,
+      
+      /** 1.7 version states
+        */
+      state_170_Start = 1000, state_170_RegH, state_170_RegL,
+      state_170_SampCntH, state_170_SampCntL, state_170_StatusH, state_170_StatusL,
+      state_170_Len, state_170_Error, state_170_Speed, state_170_Filter, state_170_Zero,
+      state_170_FxH, state_170_FxL, state_170_FyH, state_170_FyL, state_170_FzH, state_170_FzL,
+      state_170_ChecksumH, state_170_ChecksumL
     };
     
     /** \brief Default constructor

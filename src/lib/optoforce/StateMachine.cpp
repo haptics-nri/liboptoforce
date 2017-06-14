@@ -54,15 +54,24 @@ StateMachine& StateMachine::operator=(const StateMachine& src) {
 size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t 
     timestamp, std::deque<SensorPackage>& packages) {
   size_t numPackages = 0;
+  static SensorConfig lastConfig;
 
   for (int i = 0; i < data.size(); ++i) {
     unsigned char c = data[i]; // the actual byte in processing
+
+    printf("[DEBUG] currentState = %04d, c = 0x%02X, currentValue = 0x%04X\n", currentState, (unsigned short)c, currentValue);
     
     switch (currentState) { // branch with actual state in fsm
       case state_XX_CheckH:
         if (c == 55)
           // first checker byte
           currentState = state_XX_CheckL;
+        else if (c == 170) {
+          // 1.7 version sensor
+          currentState = state_170_Start;
+          currentPackage.version = SensorPackage::version_170;
+          currentPackage.timestamp = timestamp;
+        }
         else
           // wrong input byte -> restart this state
           currentState = state_XX_CheckH; 
@@ -82,16 +91,16 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
           currentPackage.version = SensorPackage::version_67;
           currentPackage.timestamp = timestamp;
         }
-        // seconf checker byte for .67 version
+        // seconf checker byte for .68 version
         else if (c == 68) {
-          // jump the .67 version reading
+          // jump the .68 version reading
           currentState = state_68_Start;
           currentPackage.version = SensorPackage::version_68;
           currentPackage.timestamp = timestamp;
         }
-        // seconf checker byte for .67 version
+        // seconf checker byte for .94 version
         else if (c == 94) {
-          // jump the .67 version reading
+          // jump the .94 version reading
           currentState = state_94_Start;
           currentPackage.version = SensorPackage::version_94;
           currentPackage.timestamp = timestamp;
@@ -751,6 +760,127 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
         // restart the fsm
         restart();
         break;
+
+      /***********************/
+      /* 1.7 version package */
+      /***********************/
+
+      case state_170_Start:
+        if (c != 170) {
+          currentState = state_170_RegH;
+        } else {
+          // redo this state
+          break;
+        }
+      case state_170_RegH:
+        currentValue = ((unsigned short)c)*256;
+        currentState = state_170_RegL;
+        break;
+      case state_170_RegL:
+        currentValue += (unsigned short)c;
+        currentState = state_170_Len;
+        break;
+      case state_170_Len:
+        // c (sometimes?) represents the number of bytes to come, but we don't care
+        switch (currentValue) {
+          case 0x0708: // force measurements incoming
+            currentState = state_170_SampCntH;
+            currentPackage.force.resize(3);
+            break;
+          case 0x0080: // error register incoming
+            currentState = state_170_Error;
+            break;
+          case 0x0032: // config values incoming
+            currentState = state_170_Speed;
+            break;
+        }
+        break;
+
+#define WORD_CASES(VERS, FIELD, DEST, AFTER)              \
+      case state_ ## VERS ## _ ## FIELD ## H:             \
+        currentValue = ((unsigned short)c)*256;           \
+        currentChecksumWord += c;                         \
+        currentState = state_ ## VERS ## _ ## FIELD ## L; \
+        break;                                            \
+      case state_ ## VERS ## _ ## FIELD ## L:             \
+        currentValue += (unsigned short)c;                \
+        currentChecksumWord += c;                         \
+        currentPackage.DEST;                              \
+        currentState = state_ ## VERS ## _ ## AFTER ## H; \
+        break
+
+      WORD_CASES(170, SampCnt, sampleCount = currentValue,       Status);
+      WORD_CASES(170, Status,  status = currentValue,            Fx);
+      WORD_CASES(170, Fx,      force[0] = (int16_t)currentValue, Fy);
+      WORD_CASES(170, Fy,      force[1] = (int16_t)currentValue, Fz);
+      WORD_CASES(170, Fz,      force[2] = (int16_t)currentValue, Checksum);
+
+      case state_170_Speed:
+        currentValue = (unsigned short)c;
+        currentChecksumWord += c;
+        switch (currentValue) {
+          case 1:
+            currentPackage.config.setSpeed(SensorConfig::speed_1000hz);
+            break;
+          case 3:
+            currentPackage.config.setSpeed(SensorConfig::speed_333hz);
+            break;
+          case 10:
+            currentPackage.config.setSpeed(SensorConfig::speed_100hz);
+            break;
+          case 33:
+            currentPackage.config.setSpeed(SensorConfig::speed_30hz);
+            break;
+          // other speeds not supported by the format in this lib
+        }
+        currentState = state_170_Filter;
+        break;
+
+      case state_170_Filter:
+        currentValue = (unsigned short)c;
+        currentChecksumWord += c;
+        switch (currentValue) {
+          case 0:
+            currentPackage.config.setFilter(SensorConfig::filter_none);
+            break;
+          case 2:
+            currentPackage.config.setFilter(SensorConfig::filter_150hz);
+            break;
+          case 3:
+            currentPackage.config.setFilter(SensorConfig::filter_50hz);
+            break;
+          case 4:
+            currentPackage.config.setFilter(SensorConfig::filter_15hz);
+            break;
+          // other filters not supported by the format in this lib
+        }
+        currentState = state_170_Zero;
+        break;
+
+      case state_170_Zero:
+        // ignore
+        currentChecksumWord += c;
+        lastConfig = currentPackage.config;
+        printf("[DEBUG] lastConfig = (speed=%d, filter=%d)\n", lastConfig.getSpeed(), lastConfig.getFilter());
+        currentState = state_170_ChecksumH;
+        break;
+
+      case state_170_ChecksumH:
+        currentValue = ((unsigned short)c)*256;
+        currentState = state_170_ChecksumL;
+      case state_170_ChecksumL:
+        currentValue += (unsigned short)c;
+        if (currentChecksumWord == currentValue)
+          currentPackage.checksum = SensorPackage::checksum_okay;
+        else
+          currentPackage.checksum = SensorPackage::checksum_error;
+        currentPackage.config = lastConfig;
+        packages.push_back(currentPackage);
+        ++numPackages;
+        // restart the fsm
+        restart();
+        break;
+
     }
   }
   

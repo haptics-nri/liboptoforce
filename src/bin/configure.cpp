@@ -90,9 +90,20 @@ int main(int argc, char *argv[]) {
   }
   
   fprintf(stdout,
-    "%-20s  %-12s  %-10s  %15s  %15s\n",
-    "Device", "State", "Mode", "Speed in [Hz]", "Filter in [Hz]");
+    "%-20s %-15s %-12s  %-10s  %15s  %15s\n",
+    "Device", "Version", "State", "Mode", "Speed in [Hz]", "Filter in [Hz]");
     
+  for (int i = 0; i < sensors.size(); i++) {
+    if (!sensors[i].hasPackages())
+      usleep(1e3*timeout);
+
+    if (sensors[i].hasPackages()) {
+        sensors[i].requestConfig();
+        sensors[i].clearPackages();
+    }
+  }
+  usleep(1e3*timeout);
+
   for (int i = 0; i < sensors.size(); i++) {
     if (!sensors[i].hasPackages())
       usleep(1e3*timeout);
@@ -159,8 +170,9 @@ int main(int argc, char *argv[]) {
       }
       
       fprintf(stdout,
-        "%-20s  %-12s  %-10s  %15d  %15d\n",
+        "%-20s %15d  %-12s  %-10s  %15d  %15d\n",
         sensors[i].getDeviceFilename().c_str(),
+        package.getVersion(),
         state.c_str(),
         mode.c_str(),
         package.getConfig().getSpeedHz(),
@@ -168,9 +180,9 @@ int main(int argc, char *argv[]) {
     }
     else
       fprintf(stdout,
-        "%-20s  %-12s  %-10s  %15s  %15s\n",
+        "%-20s %-15s  %-12s  %-10s  %15s  %15s\n",
         sensors[i].getDeviceFilename().c_str(),
-        "N/A", "N/A", "N/A", "N/A");
+        "N/A", "N/A", "N/A", "N/A", "N/A");
   }
   
   return 0;

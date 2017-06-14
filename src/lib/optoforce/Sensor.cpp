@@ -114,7 +114,44 @@ void Sensor::disconnect(bool wait) {
 }
 
 void Sensor::configure(const SensorConfig& config) {
-  serialDevice.write(config.toByte());
+  if (hasPackages()) {
+    if (getPackage().version == SensorPackage::version_170) {
+      unsigned char speed, filter;
+      switch (config.getSpeed()) {
+        case SensorConfig::speed_1000hz:
+          speed = 1;
+          break;
+        case SensorConfig::speed_333hz:
+          speed = 3;
+          break;
+        case SensorConfig::speed_100hz:
+          speed = 10;
+          break;
+        case SensorConfig::speed_30hz:
+          speed = 33;
+          break;
+      }
+      switch (config.getFilter()) {
+        case SensorConfig::filter_none:
+          filter = 0;
+          break;
+        case SensorConfig::filter_150hz:
+          filter = 2;
+          break;
+        case SensorConfig::filter_50hz:
+          filter = 3;
+          break;
+        case SensorConfig::filter_15hz:
+          filter = 4;
+          break;
+      }
+      printf("[DEBUG] writing config speed=%d filter=%d\n", speed, filter);
+      unsigned short sum = 170 + 50 + 3 + (unsigned short)speed + (unsigned short)filter;
+      serialDevice.write({170, 0, 50, 3, speed, filter, 0, (sum & 0xFF00) >> 8, sum & 0x00FF});
+    } else {
+      serialDevice.write(config.toByte());
+    }
+  }
 }
 
 void Sensor::calibrate(size_t numReadings) {
@@ -174,8 +211,21 @@ void Sensor::clearPackages() {
   packageBuffer.clear();
 }
 
+void Sensor::requestConfig() {
+  if (hasPackages()) {
+      if (getPackage().version == SensorPackage::version_170) {
+          printf("[DEBUG] writing config request\n");
+          serialDevice.write({171, 0, 50, 6, 0, 227});
+      }
+  }
+}
+
 void Sensor::processReadData(const std::vector<unsigned char>& data,
     int64_t timestamp) {
+
+  printf("[DEBUG] processReadData([");
+  for (int i = 0; i < data.size(); ++i) printf("0x%02X%s", data[i], i == data.size()-1 ? "])\n" : ", ");
+
   if (!data.empty()) {
     boost::lock_guard<boost::mutex> lock(mutex);
     
