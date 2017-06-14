@@ -55,6 +55,7 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
     timestamp, std::deque<SensorPackage>& packages) {
   size_t numPackages = 0;
   static SensorConfig lastConfig;
+  bool isPackage = true;
 
   for (int i = 0; i < data.size(); ++i) {
     unsigned char c = data[i]; // the actual byte in processing
@@ -63,6 +64,7 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
     
     switch (currentState) { // branch with actual state in fsm
       case state_XX_CheckH:
+        isPackage = true; // assumption
         if (c == 55)
           // first checker byte
           currentState = state_XX_CheckL;
@@ -781,14 +783,15 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
         currentState = state_170_Len;
         break;
       case state_170_Len:
-        // c (sometimes?) represents the number of bytes to come, but we don't care
+        // c represents the number of bytes to come, but we don't care
         switch (currentValue) {
           case 0x0708: // force measurements incoming
             currentState = state_170_SampCntH;
             currentPackage.force.resize(3);
             break;
-          case 0x0080: // error register incoming
+          case 0x0050: // error register incoming
             currentState = state_170_Error;
+            isPackage = false;
             break;
           case 0x0032: // config values incoming
             currentState = state_170_Speed;
@@ -865,6 +868,12 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
         currentState = state_170_ChecksumH;
         break;
 
+      case state_170_Error:
+        // ignore
+        currentChecksumWord += c;
+        currentState = state_170_ChecksumH;
+        break;
+
       case state_170_ChecksumH:
         currentValue = ((unsigned short)c)*256;
         currentState = state_170_ChecksumL;
@@ -875,8 +884,10 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
         else
           currentPackage.checksum = SensorPackage::checksum_error;
         currentPackage.config = lastConfig;
-        packages.push_back(currentPackage);
-        ++numPackages;
+        if (isPackage) {
+          packages.push_back(currentPackage);
+          ++numPackages;
+        }
         // restart the fsm
         restart();
         break;
