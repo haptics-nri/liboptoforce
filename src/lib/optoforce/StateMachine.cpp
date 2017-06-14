@@ -59,7 +59,7 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
   for (int i = 0; i < data.size(); ++i) {
     unsigned char c = data[i]; // the actual byte in processing
 
-    printf("[DEBUG] currentState = %04d, c = 0x%02X, currentValue = 0x%04X\n", currentState, (unsigned short)c, currentValue);
+    //printf("[DEBUG] currentState = %04d, c = 0x%02X, currentValue = 0x%04X\n", currentState, (unsigned short)c, currentValue);
     
     switch (currentState) { // branch with actual state in fsm
       case state_XX_CheckH:
@@ -861,7 +861,7 @@ size_t StateMachine::process(const std::vector<unsigned char>& data, int64_t
         // ignore
         currentChecksumWord += c;
         lastConfig = currentPackage.config;
-        printf("[DEBUG] lastConfig = (speed=%d, filter=%d)\n", lastConfig.getSpeed(), lastConfig.getFilter());
+        //printf("[DEBUG] lastConfig = (speed=%d, filter=%d)\n", lastConfig.getSpeed(), lastConfig.getFilter());
         currentState = state_170_ChecksumH;
         break;
 

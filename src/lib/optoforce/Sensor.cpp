@@ -145,7 +145,7 @@ void Sensor::configure(const SensorConfig& config) {
           filter = 4;
           break;
       }
-      printf("[DEBUG] writing config speed=%d filter=%d\n", speed, filter);
+      //printf("[DEBUG] writing config speed=%d filter=%d\n", speed, filter);
       unsigned short sum = 170 + 50 + 3 + (unsigned short)speed + (unsigned short)filter;
       serialDevice.write({170, 0, 50, 3, speed, filter, 0, (sum & 0xFF00) >> 8, sum & 0x00FF});
     } else {
@@ -214,7 +214,7 @@ void Sensor::clearPackages() {
 void Sensor::requestConfig() {
   if (hasPackages()) {
       if (getPackage().version == SensorPackage::version_170) {
-          printf("[DEBUG] writing config request\n");
+          //printf("[DEBUG] writing config request\n");
           serialDevice.write({171, 0, 50, 6, 0, 227});
       }
   }
@@ -223,8 +223,8 @@ void Sensor::requestConfig() {
 void Sensor::processReadData(const std::vector<unsigned char>& data,
     int64_t timestamp) {
 
-  printf("[DEBUG] processReadData([");
-  for (int i = 0; i < data.size(); ++i) printf("0x%02X%s", data[i], i == data.size()-1 ? "])\n" : ", ");
+  //printf("[DEBUG] processReadData([");
+  //for (int i = 0; i < data.size(); ++i) printf("0x%02X%s", data[i], i == data.size()-1 ? "])\n" : ", ");
 
   if (!data.empty()) {
     boost::lock_guard<boost::mutex> lock(mutex);
